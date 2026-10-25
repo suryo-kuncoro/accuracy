@@ -1,0 +1,9 @@
+BUILD VIA GITHUB (tanpa Android Studio)
+1. Buat repo GitHub baru, unggah SELURUH isi folder ini (termasuk folder .github).
+2. Tab Actions > "Build APK" berjalan otomatis setiap push ke main
+   (atau tekan Run workflow).
+3. Setelah hijau, buka run tersebut > Artifacts > posisi-debug-apk > unduh,
+   ekstrak, pasang app-debug.apk di HP (izinkan install dari sumber ini).
+4. Developer Options > Select mock location app > Posisi Pendamping.
+
+Jika build merah: salin pesan error dari log Actions dan kirim ke saya.
