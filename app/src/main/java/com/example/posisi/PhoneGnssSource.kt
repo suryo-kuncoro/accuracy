@@ -3,9 +3,11 @@ package com.example.posisi
 import android.annotation.SuppressLint
 import android.content.Context
 import android.location.GnssStatus
+import android.location.Location
 import android.location.LocationListener
 import android.location.LocationManager
 import android.location.OnNmeaMessageListener
+import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import kotlinx.coroutines.channels.awaitClose
@@ -37,7 +39,13 @@ class PhoneGnssSource(private val ctx: Context) : GnssSource {
             }
         }
         // Permintaan lokasi kosong: hanya agar mesin GNSS tetap menyala.
-        val keepAlive = LocationListener { }
+        val keepAlive = object : LocationListener {
+            override fun onLocationChanged(location: Location) {}
+            override fun onProviderEnabled(provider: String) {}
+            override fun onProviderDisabled(provider: String) {}
+            @Deprecated("Dibutuhkan untuk API < 29")
+            override fun onStatusChanged(provider: String?, status: Int, extras: Bundle?) {}
+        }
 
         lm.addNmeaListener(nmea, h)
         lm.registerGnssStatusCallback(status, h)

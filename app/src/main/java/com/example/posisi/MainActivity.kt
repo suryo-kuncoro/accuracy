@@ -20,7 +20,8 @@ class MainActivity : AppCompatActivity() {
         this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
 
     private fun askPermissions() = ActivityCompat.requestPermissions(this,
-        arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.POST_NOTIFICATIONS), 1)
+        arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION,
+            Manifest.permission.POST_NOTIFICATIONS), 1)
 
     override fun onCreate(b: Bundle?) {
         super.onCreate(b)
@@ -31,7 +32,7 @@ class MainActivity : AppCompatActivity() {
             setOnClickListener {
                 if (!hasLocation()) {
                     Toast.makeText(this@MainActivity,
-                        "Izinkan Lokasi (Presisi) lalu tekan MULAI lagi", Toast.LENGTH_LONG).show()
+                        "Izinkan Lokasi dengan opsi PRESISI (bukan Perkiraan), lalu tekan MULAI lagi", Toast.LENGTH_LONG).show()
                     askPermissions(); return@setOnClickListener
                 }
                 Toast.makeText(this@MainActivity, "Memulai layanan...", Toast.LENGTH_SHORT).show()

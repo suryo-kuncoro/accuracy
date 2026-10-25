@@ -6,6 +6,7 @@ import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
 import kotlinx.coroutines.*
+import java.util.Locale
 
 class PositionService : Service() {
     companion object { const val ACTION_STOP = "stop" }
@@ -19,11 +20,18 @@ class PositionService : Service() {
     override fun onStartCommand(i: Intent?, flags: Int, id: Int): Int {
         if (i?.action == ACTION_STOP) { stopSelf(); return START_NOT_STICKY }
         startAsForeground()
-        if (job != null) return START_STICKY
+        if (job != null) return START_NOT_STICKY
 
         val m = MockPublisher(this)
+        Status.failed = false
         try { m.start() } catch (e: SecurityException) {
-            Status.text = "Pilih aplikasi ini di Developer Options > Select mock location app"
+            Status.failed = true
+            Status.text = "GAGAL: aplikasi ini belum dipilih di Developer Options > " +
+                "Select mock location app (atau belum muncul di daftar)"
+            stopSelf(); return START_NOT_STICKY
+        } catch (e: Exception) {
+            Status.failed = true
+            Status.text = "GAGAL membuat mock provider: ${e.javaClass.simpleName}: ${e.message}"
             stopSelf(); return START_NOT_STICKY
         }
         mock = m
@@ -39,11 +47,11 @@ class PositionService : Service() {
                 n++
                 Status.lastFixMs = System.currentTimeMillis()
                 Status.text = "epoch=$n  fix=${fx.fix}  nsat=${fx.nsat}\n" +
-                    "hdop=%.1f  sigma=%.1f m  cn0=%.0f\n".format(fx.hdop, fx.sigmaH, fx.cn0) +
-                    "raw: %.6f, %.6f".format(fx.lat, fx.lon)
+                    String.format(Locale.US, "hdop=%.1f  sigma=%.1f m  cn0=%.0f\n", fx.hdop, fx.sigmaH, fx.cn0) +
+                    String.format(Locale.US, "raw: %.6f, %.6f", fx.lat, fx.lon)
             }
         }
-        return START_STICKY
+        return START_NOT_STICKY
     }
 
     private fun startAsForeground() {
@@ -60,6 +68,6 @@ class PositionService : Service() {
     override fun onDestroy() {
         job?.cancel(); mock?.stop(); scope.cancel()
         Status.running = false
-        Status.text = "Berhenti"
+        if (!Status.failed) Status.text = "Berhenti"
     }
 }
