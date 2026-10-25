@@ -27,6 +27,10 @@ class PositionService : Service() {
             stopSelf(); return START_NOT_STICKY
         }
         mock = m
+        Status.running = true
+        Status.startMs = System.currentTimeMillis()
+        Status.lastFixMs = 0L
+        Status.text = "AKTIF. Mock location menyala, menunggu NMEA dari chip GPS..."
 
         job = scope.launch {
             var n = 0
@@ -55,6 +59,7 @@ class PositionService : Service() {
 
     override fun onDestroy() {
         job?.cancel(); mock?.stop(); scope.cancel()
+        Status.running = false
         Status.text = "Berhenti"
     }
 }
