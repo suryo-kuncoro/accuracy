@@ -1,0 +1,66 @@
+name: Release APK
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      KS_B64: ${{ secrets.KEYSTORE_BASE64 }}
+      KS_PASS: ${{ secrets.KEYSTORE_PASSWORD }}
+      KS_ALIAS: ${{ secrets.KEY_ALIAS }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: 8.7
+
+      - name: Siapkan keystore
+        run: |
+          KS="$RUNNER_TEMP/release.jks"
+          if [ -n "$KS_B64" ] && [ -n "$KS_PASS" ] && [ -n "$KS_ALIAS" ]; then
+            echo "$KS_B64" | base64 -d > "$KS"
+            test -s "$KS"
+            keytool -list -storetype PKCS12 -keystore "$KS" -storepass "$KS_PASS" -alias "$KS_ALIAS" > /dev/null
+            echo "KEYSTORE_PASSWORD=$KS_PASS" >> "$GITHUB_ENV"
+            echo "KEY_ALIAS=$KS_ALIAS" >> "$GITHUB_ENV"
+          else
+            PASS=$(openssl rand -hex 16)
+            keytool -genkeypair -keystore "$KS" -alias accuracyimprover \
+              -keyalg RSA -keysize 2048 -validity 10000 \
+              -storepass "$PASS" -keypass "$PASS" -dname "CN=Accuracy Improver"
+            echo "KEYSTORE_PASSWORD=$PASS" >> "$GITHUB_ENV"
+            echo "KEY_ALIAS=accuracyimprover" >> "$GITHUB_ENV"
+            echo "::warning::Secrets keystore tidak ada. APK ditandatangani kunci sementara; pembaruan berikutnya harus uninstall dulu."
+          fi
+          echo "KEYSTORE_PATH=$KS" >> "$GITHUB_ENV"
+
+      - name: Build release APK
+        run: gradle assembleRelease --no-daemon
+
+      - name: Verifikasi tanda tangan dan ganti nama
+        run: |
+          APK=app/build/outputs/apk/release/app-release.apk
+          BT=$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -1)
+          "$ANDROID_HOME/build-tools/$BT/apksigner" verify --print-certs "$APK"
+          cp "$APK" AccuracyImprover.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: AccuracyImprover-apk
+          path: AccuracyImprover.apk
+
+      - name: Publikasikan ke Releases
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: AccuracyImprover.apk
